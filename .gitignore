@@ -1,0 +1,9 @@
+# Local environment — never commit real credentials.
+.env
+
+# Build artifacts
+bin/
+*.log
+
+# Temporary files
+.DS_Store

@@ -1,0 +1,180 @@
+openapi: 3.0.3
+info:
+  title: arahin-mini API
+  description: |
+    Educational backend for the AInnovate workshop.
+
+    Teaches: REST API -> Handler -> Service -> Repository -> PostgreSQL,
+    plus an AI client abstraction and the "POST fast, poll for result"
+    asynchronous pattern.
+
+    NOTE: GET /v1/quizzes/{id} never returns the answer key
+    (correct_option stays server-side).
+  version: 1.0.0
+servers:
+  - url: http://localhost:8080
+    description: Local workshop server
+
+paths:
+  /v1/quiz-requests:
+    post:
+      summary: Start quiz generation
+      description: |
+        Accepts the request and returns HTTP 202 immediately.
+        The generation runs in the background; poll the returned
+        request_id with GET /v1/quiz-requests/{id}.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateQuizRequest'
+      responses:
+        '202':
+          description: Generation accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuizRequest'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+
+  /v1/quiz-requests/{id}:
+    get:
+      summary: Get quiz-generation status
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Current job status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuizRequest'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /v1/quizzes/{id}:
+    get:
+      summary: Get a generated quiz
+      description: |
+        Returns the quiz WITHOUT the answer key (correct_option is omitted
+        on purpose — it never leaves the server).
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Quiz (safe for the client)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Quiz'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+components:
+  schemas:
+    CreateQuizRequest:
+      type: object
+      required: [user_id, lesson_id]
+      properties:
+        user_id:
+          type: string
+          format: uuid
+          example: 11111111-1111-1111-1111-111111111111
+        lesson_id:
+          type: string
+          format: uuid
+          example: 22222222-2222-2222-2222-222222222222
+
+    QuizRequest:
+      type: object
+      properties:
+        request_id:
+          type: string
+          format: uuid
+        status:
+          type: string
+          enum: [processing, ready, failed]
+        quiz_id:
+          type: string
+          format: uuid
+          description: Present only when status is ready
+        message:
+          type: string
+          description: Present only when status is failed
+
+    Quiz:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        difficulty:
+          type: string
+          enum: [easy, medium, hard]
+        questions:
+          type: array
+          items:
+            $ref: '#/components/schemas/Question'
+
+    Question:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        question:
+          type: string
+        options:
+          type: array
+          items:
+            type: string
+      example:
+        id: 00000000-0000-0000-0000-000000000000
+        question: What does a hash function map its input to?
+        options:
+          - A variable-length value
+          - A fixed-size value
+          - An image file
+          - A username
+
+    ErrorBody:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+              example: INVALID_REQUEST
+            message:
+              type: string
+
+  responses:
+    BadRequest:
+      description: Malformed request
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorBody'
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorBody'
