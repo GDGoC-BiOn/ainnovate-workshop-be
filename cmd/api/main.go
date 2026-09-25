@@ -38,6 +38,15 @@ func loadConfig() config {
 
 func main() {
 	slog.SetDefault(slog.New(slog.NewJSONHandler(os.Stdout, nil)))
+
+	// Load .env if present so behaviour is identical under `make run`,
+	// `go run`, or an IDE (GoLand does not read .env by itself).
+	// Existing environment variables take precedence (never overwritten).
+	if err := platform.LoadDotEnv(".env"); err != nil {
+		slog.Error("load .env", "error", err)
+		os.Exit(1)
+	}
+
 	cfg := loadConfig()
 
 	// -------------------------------------------------------------------

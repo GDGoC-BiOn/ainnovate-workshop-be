@@ -136,6 +136,12 @@ AI_STUB_FAIL_RATE=0.0
 ```
 
 > `.env` is already in `.gitignore`. Never commit real credentials.
+>
+> The app **auto-loads `.env` from the working directory**, so it behaves the
+> same under `make run`, `go run ./cmd/api`, or an IDE such as GoLand.
+> Real shell/IDE environment variables take precedence over `.env`.
+> Tip: if port 8080 is already used on your machine (e.g. by another local
+> service), change `HTTP_ADDR` to a free port like `:8087`.
 
 ---
 
